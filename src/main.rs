@@ -381,6 +381,103 @@ fn get_required(props: &std::collections::HashMap<String, Option<String>>, key: 
     get_optional(props, key).ok_or_else(|| anyhow!("missing required key `{}` in section [{}]", key, section))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_target_table_simple() {
+        let sql = "SELECT * FROM my_table";
+        assert_eq!(extract_target_table_from_sql(sql).unwrap(), "my_table");
+    }
+
+    #[test]
+    fn test_extract_target_table_quoted() {
+        let sql = "SELECT * FROM `schema`.`table`";
+        assert_eq!(extract_target_table_from_sql(sql).unwrap(), "schema.table");
+    }
+
+    #[test]
+    fn test_extract_target_table_double_quoted() {
+        let sql = r#"SELECT * FROM "public"."users""#;
+        assert_eq!(extract_target_table_from_sql(sql).unwrap(), "public.users");
+    }
+
+    #[test]
+    fn test_extract_target_table_no_from() {
+        let sql = "SELECT 1";
+        assert!(extract_target_table_from_sql(sql).is_err());
+    }
+
+    #[test]
+    fn test_sql_value_literal_null() {
+        assert_eq!(sql_value_literal(""), "NULL");
+        assert_eq!(sql_value_literal("  "), "NULL");
+    }
+
+    #[test]
+    fn test_sql_value_literal_unsupported() {
+        assert_eq!(sql_value_literal("<unsupported:uuid>"), "NULL");
+    }
+
+    #[test]
+    fn test_sql_value_literal_string() {
+        assert_eq!(sql_value_literal("hello"), "'hello'");
+    }
+
+    #[test]
+    fn test_sql_value_literal_escape() {
+        assert_eq!(sql_value_literal("it's"), "'it''s'");
+        assert_eq!(sql_value_literal("path\\dir"), "'path\\\\dir'");
+    }
+
+    #[test]
+    fn test_split_schema_table_with_dot() {
+        let (s, t) = split_schema_table("public.users", "public");
+        assert_eq!(s, "public");
+        assert_eq!(t, "users");
+    }
+
+    #[test]
+    fn test_split_schema_table_without_dot() {
+        let (s, t) = split_schema_table("users", "public");
+        assert_eq!(s, "public");
+        assert_eq!(t, "users");
+    }
+
+    #[test]
+    fn test_choose_csv_for_query_match() {
+        let files = vec![CsvFileMeta {
+            path: PathBuf::from("/tmp/data_sql_test_20260101_120000.csv"),
+            file_name: "data_sql_test_20260101_120000.csv".to_string(),
+            headers: vec!["id".to_string(), "name".to_string()],
+        }];
+        let mut cols = HashSet::new();
+        cols.insert("id".to_string());
+        cols.insert("name".to_string());
+        let result = choose_csv_for_query(&files, "sql_test", &cols);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_choose_csv_for_query_no_match() {
+        let files = vec![CsvFileMeta {
+            path: PathBuf::from("/tmp/other.csv"),
+            file_name: "other.csv".to_string(),
+            headers: vec!["id".to_string()],
+        }];
+        let cols = HashSet::new();
+        let result = choose_csv_for_query(&files, "sql_test", &cols);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extract_timestamp_rank() {
+        assert_eq!(extract_timestamp_rank("data_sql_test_20260101_120000.csv"), "20260101_120000");
+        assert_eq!(extract_timestamp_rank("no_date.csv"), "no_date");
+    }
+}
+
 fn load_runtime_config(path: &Path) -> Result<RuntimeConfig> {
     if !path.exists() { return Err(anyhow!("config file not found: {}", path.display())); }
     let mut conf = Ini::new();
