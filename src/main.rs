@@ -366,6 +366,69 @@ fn get_required(props: &std::collections::HashMap<String, Option<String>>, key: 
     get_optional(props, key).ok_or_else(|| anyhow!("missing required key `{}` in section [{}]", key, section))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_resolve_config_path_no_env() {
+        let default = PathBuf::from("config.ini");
+        // config.ini doesn't exist, should error
+        assert!(resolve_config_path(&default, None).is_err());
+    }
+
+    #[test]
+    fn test_resolve_config_path_with_env_fallback() {
+        let tmp = std::env::temp_dir();
+        let default = tmp.join("config.ini");
+        let env_path = tmp.join("config.staging.ini");
+        // Write default config so fallback works
+        fs::write(&default, "[data-test]\ntype=pg\nhost=localhost\nport=5432\nuser=test\nsql_q=SELECT 1\n").unwrap();
+        // env config doesn't exist, should fallback
+        let _ = fs::remove_file(&env_path);
+        let result = resolve_config_path(&default, Some("staging"));
+        assert!(result.is_ok());
+        assert!(result.unwrap().ends_with("config.ini"));
+        let _ = fs::remove_file(&default);
+    }
+
+    #[test]
+    fn test_resolve_config_path_with_env_found() {
+        let tmp = std::env::temp_dir();
+        let default = tmp.join("config.ini");
+        let env_path = tmp.join("config.staging.ini");
+        fs::write(&env_path, "[data-test]\ntype=pg\nhost=staging\nport=5432\nuser=test\nsql_q=SELECT 1\n").unwrap();
+        let result = resolve_config_path(&default, Some("staging"));
+        assert!(result.is_ok());
+        assert!(result.unwrap().ends_with("config.staging.ini"));
+        let _ = fs::remove_file(&env_path);
+    }
+
+    #[test]
+    fn test_sanitize() {
+        assert_eq!(sanitize("hello-world"), "hello-world");
+        assert_eq!(sanitize("hello world"), "hello_world");
+        assert_eq!(sanitize("a.b/c"), "a___c");
+    }
+
+    #[test]
+    fn test_parse_bool() {
+        assert!(parse_bool("1"));
+        assert!(parse_bool("true"));
+        assert!(parse_bool("yes"));
+        assert!(!parse_bool("0"));
+        assert!(!parse_bool("false"));
+        assert!(!parse_bool("no"));
+    }
+
+    #[test]
+    fn test_escape_pg_conn_value() {
+        assert_eq!(escape_pg_conn_value("it's"), "it\\'s");
+        assert_eq!(escape_pg_conn_value("path\\dir"), "path\\\\dir");
+    }
+}
+
 fn load_runtime_config(path: &Path) -> Result<RuntimeConfig> {
     if !path.exists() { return Err(anyhow!("config file not found: {}", path.display())); }
     let mut conf = Ini::new();
