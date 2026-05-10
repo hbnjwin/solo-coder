@@ -370,3 +370,117 @@ fn append_udp_chunk_metric_record(save_path: &Path, record: &UdpChunkMetricRecor
 fn format_error(err: &anyhow::Error) -> String {
     format!("{:#}", err)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    fn make_chunk(msg_id: &str, idx: usize, total: usize, data: &str) -> UdpChunkPacketOwned {
+        UdpChunkPacketOwned {
+            kind: UDP_CHUNK_KIND.to_string(),
+            msg_id: msg_id.to_string(),
+            idx,
+            total,
+            data: data.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_ingest_chunk_complete_reassembly() {
+        let mut assemblies = HashMap::new();
+        let key = "peer|msg1";
+
+        // Send 3 chunks for a 3-part message
+        let c0 = make_chunk("msg1", 0, 3, "hello ");
+        assert!(ingest_udp_chunk(&mut assemblies, key, c0).unwrap().is_none());
+
+        let c1 = make_chunk("msg1", 1, 3, "world ");
+        assert!(ingest_udp_chunk(&mut assemblies, key, c1).unwrap().is_none());
+
+        let c2 = make_chunk("msg1", 2, 3, "!");
+        let result = ingest_udp_chunk(&mut assemblies, key, c2).unwrap();
+        assert_eq!(result, Some("hello world !".to_string()));
+    }
+
+    #[test]
+    fn test_ingest_chunk_duplicate_does_not_overshoot() {
+        // BUG: with current code, duplicate chunks cause received > total,
+        // so reassembly never completes. This test will FAIL until the bug is fixed.
+        let mut assemblies = HashMap::new();
+        let key = "peer|msg2";
+
+        let c0 = make_chunk("msg2", 0, 2, "aa");
+        assert!(ingest_udp_chunk(&mut assemblies, key, c0).unwrap().is_none());
+
+        // Simulate UDP retransmission: send chunk 0 again
+        let c0_dup = make_chunk("msg2", 0, 2, "aa");
+        assert!(ingest_udp_chunk(&mut assemblies, key, c0_dup).unwrap().is_none());
+
+        let c1 = make_chunk("msg2", 1, 2, "bb");
+        let result = ingest_udp_chunk(&mut assemblies, key, c1);
+        // With bug: received=3 (0+0_dup+1), total=2, never matches → returns None
+        // After fix:  received=2 (0 counted once + 1), total=2, matches → returns Some
+        assert!(result.unwrap().is_some(), "duplicate chunk should not prevent reassembly");
+    }
+
+    #[test]
+    fn test_cleanup_removes_stale_assemblies() {
+        // BUG: with current code, TTL check is inverted (< instead of >),
+        // so fresh assemblies get cleaned and stale ones stay. This test will FAIL until fixed.
+        let mut assemblies = HashMap::new();
+        let key_old = "peer|old_msg".to_string();
+        let key_new = "peer|new_msg".to_string();
+
+        // Insert a "stale" assembly (updated_at in the past)
+        assemblies.insert(key_old.clone(), UdpChunkAssembly {
+            total: 2, received: 1,
+            parts: vec![Some("x".into()), None],
+            updated_at: Instant::now() - Duration::from_secs(UDP_CHUNK_TTL_SECS + 10),
+        });
+
+        // Insert a "fresh" assembly
+        assemblies.insert(key_new.clone(), UdpChunkAssembly {
+            total: 2, received: 1,
+            parts: vec![Some("y".into()), None],
+            updated_at: Instant::now(),
+        });
+
+        let expired = cleanup_expired_udp_assemblies(&mut assemblies);
+
+        // After fix: stale should be expired, fresh should remain
+        assert!(expired.iter().any(|e| e.msg_key == key_old), "stale assembly should be expired");
+        assert!(!expired.iter().any(|e| e.msg_key == key_new), "fresh assembly should NOT be expired");
+        assert!(assemblies.contains_key(&key_new), "fresh assembly should remain in map");
+        assert!(!assemblies.contains_key(&key_old), "stale assembly should be removed from map");
+    }
+
+    #[test]
+    fn test_parse_valid_chunk_packet() {
+        let json = r#"{"kind":"udp_chunk_v1","msg_id":"m1","idx":0,"total":2,"data":"hi"}"#;
+        let pkt = parse_udp_chunk_packet(json).unwrap();
+        assert_eq!(pkt.msg_id, "m1");
+        assert_eq!(pkt.idx, 0);
+        assert_eq!(pkt.total, 2);
+    }
+
+    #[test]
+    fn test_parse_invalid_chunk_packet() {
+        let json = r#"{"kind":"other","msg_id":"m1","idx":0,"total":2,"data":"hi"}"#;
+        assert!(parse_udp_chunk_packet(json).is_none());
+    }
+
+    #[test]
+    fn test_ingest_invalid_total() {
+        let mut assemblies = HashMap::new();
+        let chunk = make_chunk("m", 0, 0, "x");
+        assert!(ingest_udp_chunk(&mut assemblies, "k", chunk).is_err());
+    }
+
+    #[test]
+    fn test_ingest_idx_out_of_range() {
+        let mut assemblies = HashMap::new();
+        let chunk = make_chunk("m", 5, 3, "x");
+        assert!(ingest_udp_chunk(&mut assemblies, "k", chunk).is_err());
+    }
+}
