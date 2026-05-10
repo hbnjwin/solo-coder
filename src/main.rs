@@ -744,18 +744,19 @@ fn cleanup_expired_udp_assemblies(
     assemblies: &mut HashMap<String, UdpChunkAssembly>,
 ) -> Vec<ExpiredUdpChunk> {
     let ttl = Duration::from_secs(UDP_CHUNK_TTL_SECS);
-    let mut expired = Vec::new();
-    assemblies.retain(|msg_key, assembly| {
-        let keep = assembly.updated_at.elapsed() <= ttl;
-        if !keep {
-            expired.push(ExpiredUdpChunk {
-                msg_key: msg_key.clone(),
-                total: assembly.total,
-                received: assembly.received,
-            });
-        }
-        keep
-    });
+    let now = Instant::now();
+    let expired: Vec<ExpiredUdpChunk> = assemblies
+        .iter()
+        .filter(|(_, a)| now.duration_since(a.updated_at) < ttl)
+        .map(|(k, a)| ExpiredUdpChunk {
+            msg_key: k.clone(),
+            total: a.total,
+            received: a.received,
+        })
+        .collect();
+    for e in &expired {
+        assemblies.remove(&e.msg_key);
+    }
     expired
 }
 
@@ -799,9 +800,7 @@ fn ingest_udp_chunk(
         }
 
         assembly.updated_at = Instant::now();
-        if assembly.parts[chunk.idx].is_none() {
-            assembly.received += 1;
-        }
+        assembly.received += 1;
         assembly.parts[chunk.idx] = Some(chunk.data);
         completed = assembly.received == assembly.total;
     }
