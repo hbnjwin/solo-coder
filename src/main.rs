@@ -320,6 +320,60 @@ fn get_required(props: &std::collections::HashMap<String, Option<String>>, key: 
     get_optional(props, key).ok_or_else(|| anyhow!("missing required key `{}` in section [{}]", key, section))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_replace_time_range_basic() {
+        let sql = "SELECT * FROM t WHERE created_at BETWEEN '2026-01-01 00:00:00' AND '2026-01-02 00:00:00'";
+        let result = replace_time_range(sql, "2026-01-02 00:00:00", "2026-01-03 00:00:00");
+        assert!(result.contains("BETWEEN '2026-01-02 00:00:00' AND '2026-01-03 00:00:00'"));
+    }
+
+    #[test]
+    fn test_replace_time_range_case_insensitive() {
+        let sql = "SELECT * FROM t WHERE dt between '2025-01-01' and '2025-12-31'";
+        let result = replace_time_range(sql, "2026-01-01", "2026-06-01");
+        assert!(result.contains("BETWEEN '2026-01-01' AND '2026-06-01'"));
+    }
+
+    #[test]
+    fn test_replace_time_range_no_between() {
+        let sql = "SELECT * FROM t WHERE id > 10";
+        let result = replace_time_range(sql, "2026-01-01", "2026-06-01");
+        assert_eq!(result, sql);
+    }
+
+    #[test]
+    fn test_replace_time_range_multiple() {
+        let sql = "SELECT * FROM t WHERE a BETWEEN '2025-01-01' AND '2025-06-01' AND b BETWEEN '2025-02-01' AND '2025-07-01'";
+        let result = replace_time_range(sql, "2026-01-01", "2026-06-01");
+        assert!(result.contains("BETWEEN '2026-01-01' AND '2026-06-01'"));
+        // Both occurrences should be replaced
+        let count = result.matches("BETWEEN '2026-01-01' AND '2026-06-01'").count();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_sanitize() {
+        assert_eq!(sanitize("hello-world"), "hello-world");
+        assert_eq!(sanitize("hello world"), "hello_world");
+    }
+
+    #[test]
+    fn test_parse_bool() {
+        assert!(parse_bool("1"));
+        assert!(parse_bool("true"));
+        assert!(!parse_bool("0"));
+    }
+
+    #[test]
+    fn test_escape_pg_conn_value() {
+        assert_eq!(escape_pg_conn_value("it's"), "it\\'s");
+    }
+}
+
 fn load_runtime_config(path: &Path) -> Result<RuntimeConfig> {
     if !path.exists() { return Err(anyhow!("config file not found: {}", path.display())); }
     let mut conf = Ini::new();
