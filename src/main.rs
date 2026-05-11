@@ -23,12 +23,9 @@ impl AuditStore {
     pub fn query_by_trace_id(&self, trace_id: &str) -> Vec<&AuditEntry> {
         self.entries.iter().filter(|e| e.trace_id == trace_id).collect()
     }
-    pub fn query_by_level(&self, level: &AuditLevel) -> Vec<&AuditEntry> {
-        self.entries.iter().filter(|e| std::mem::discriminant(&e.level) == std::mem::discriminant(level)).collect()
-    }
 }
 
-/// TODO: not implemented - should return Vec<FieldChange>
+/// TODO: not implemented - should support nested objects and arrays
 pub fn compute_field_diff(_old: &serde_json::Value, _new: &serde_json::Value) -> Vec<FieldChange> {
     vec![]
 }
@@ -54,10 +51,31 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn test_field_diff_not_implemented() {
+    fn test_simple_field_diff() {
         let old = serde_json::json!({"amount": 10000});
         let new = serde_json::json!({"amount": 15000});
-        assert_eq!(compute_field_diff(&old, &new).len(), 0);
+        let changes = compute_field_diff(&old, &new);
+        assert!(!changes.is_empty(), "should detect amount change");
+        assert!(changes.iter().any(|c| c.field == "amount" && c.old_value == "10000" && c.new_value == "15000"));
+    }
+
+    #[test]
+    fn test_nested_object_diff() {
+        let old = serde_json::json!({"approver": {"name": "zhangsan", "level": 2}});
+        let new = serde_json::json!({"approver": {"name": "lisi", "level": 2}});
+        let changes = compute_field_diff(&old, &new);
+        assert!(!changes.is_empty(), "should detect nested change");
+        assert!(changes.iter().any(|c| c.field == "approver.name" && c.old_value == "zhangsan" && c.new_value == "lisi"),
+            "should use dot notation for nested fields");
+    }
+
+    #[test]
+    fn test_array_diff() {
+        let old = serde_json::json!({"tags": ["urgent", "finance"]});
+        let new = serde_json::json!({"tags": ["urgent", "finance", "contract"]});
+        let changes = compute_field_diff(&old, &new);
+        assert!(!changes.is_empty(), "should detect array change");
     }
 }
