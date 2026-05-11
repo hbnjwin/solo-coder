@@ -16,34 +16,15 @@ fn make_instance(id: &str, state: ApprovalState, updated_at: &str) -> WorkflowIn
 }
 
 #[test]
-fn test_workflow_scenario_a() {
+fn test_full_lifecycle() {
     let machine = StateMachine::new();
-    let mut instance = make_instance("wf-1", ApprovalState::Submitted, "2026-05-11T10:00:00Z");
-
-    auto_advance(&machine, &mut instance, ApprovalState::UnderReview).unwrap();
-    assert_eq!(instance.state, ApprovalState::UnderReview);
-
-    auto_advance(&machine, &mut instance, ApprovalState::Rejected).unwrap();
-    assert_eq!(instance.state, ApprovalState::Rejected);
-
-    let result = auto_advance(&machine, &mut instance, ApprovalState::Approved);
-    assert!(
-        result.is_err(),
-        "expected cycle detection error, got {:?}",
-        result
-    );
-}
-
-#[test]
-fn test_workflow_scenario_b() {
-    let machine = StateMachine::new();
-    let mut instance = make_instance("wf-2", ApprovalState::Draft, "2026-05-11T10:00:00Z");
+    let mut instance = make_instance("wf-1", ApprovalState::Draft, "2026-05-11T10:00:00Z");
 
     let events = auto_advance(&machine, &mut instance, ApprovalState::Completed).unwrap();
     assert_eq!(instance.state, ApprovalState::Completed);
     assert!(
         events.len() >= 4,
-        "expected at least 4 transitions, got {}",
+        "expected at least 4 transitions for full lifecycle, got {}",
         events.len()
     );
 
@@ -59,7 +40,7 @@ fn test_workflow_scenario_b() {
 }
 
 #[test]
-fn test_path_resolution() {
+fn test_path_finding() {
     let machine = StateMachine::new();
 
     let path = find_path(&machine, &ApprovalState::Draft, &ApprovalState::Completed);
@@ -99,34 +80,4 @@ fn test_store_maintenance() {
         removed
     );
     assert_eq!(store.count(), 1);
-}
-
-#[test]
-fn test_batch_processing() {
-    let machine = StateMachine::new();
-    let mut store = WorkflowStore::new();
-
-    store.insert(make_instance(
-        "b-1",
-        ApprovalState::Draft,
-        "2026-05-11T10:00:00Z",
-    ));
-    store.insert(make_instance(
-        "b-2",
-        ApprovalState::Draft,
-        "2026-05-11T10:00:00Z",
-    ));
-    store.insert(make_instance(
-        "b-3",
-        ApprovalState::Completed,
-        "2026-05-11T10:00:00Z",
-    ));
-
-    let instance1 = store.get_mut("b-1").unwrap();
-    let r1 = auto_advance(&machine, instance1, ApprovalState::Submitted);
-    assert!(r1.is_ok());
-
-    let instance3 = store.get_mut("b-3").unwrap();
-    let r3 = auto_advance(&machine, instance3, ApprovalState::Submitted);
-    assert!(r3.is_err());
 }

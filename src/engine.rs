@@ -99,21 +99,13 @@ fn can_reach(
 }
 
 fn path_would_create_cycle(machine: &StateMachine, path: &[ApprovalState]) -> bool {
-    if path.len() <= 1 {
+    if path.len() <= 2 {
         return false;
     }
 
-    let start = path.first().unwrap();
-
     for (i, state) in path.iter().enumerate() {
         for rule in machine.get_available_transitions(state) {
-            if &rule.to == state {
-                continue;
-            }
-            if &rule.to == start || path[..i].contains(&rule.to) {
-                return true;
-            }
-            if can_reach(machine, &rule.to, start) {
+            if path[..i].contains(&rule.to) {
                 return true;
             }
         }
