@@ -1,27 +1,60 @@
 <template>
-  <div class="designer">
-    <h2>工作流设计器</h2>
-    <div class="canvas">
-      <div v-for="node in nodes" :key="node.id" class="node" :style="{ left: node.x + 'px', top: node.y + 'px' }">
-        {{ node.label }}
+  <div class="app">
+    <header class="app-header">
+      <h1>工作流设计器</h1>
+      <div class="header-actions">
+        <button class="btn" @click="onConnect">连接选中节点</button>
       </div>
+    </header>
+    <div class="app-body">
+      <DesignerToolbar />
+      <DesignerCanvas />
     </div>
-    <!-- TODO: toolbar with draggable node types -->
-    <!-- TODO: connection line drawing -->
-    <!-- TODO: node deletion with Delete key -->
   </div>
 </template>
+
 <script setup lang="ts">
-import { reactive } from 'vue'
-interface WFNode { id: string; type: string; label: string; x: number; y: number }
-const nodes = reactive<WFNode[]>([
-  { id: 'start', type: 'start', label: '开始', x: 100, y: 50 },
-  { id: 'approval', type: 'approval', label: '审批', x: 100, y: 150 },
-  { id: 'end', type: 'end', label: '结束', x: 100, y: 250 },
-])
+import { useDesigner } from './composables/useDesigner'
+import DesignerToolbar from './components/DesignerToolbar.vue'
+import DesignerCanvas from './components/DesignerCanvas.vue'
+
+const { nodes, selectedNodeId, addConnection } = useDesigner()
+
+let lastSelectedId: string | null = null
+
+function onConnect(): void {
+  if (lastSelectedId && selectedNodeId.value && lastSelectedId !== selectedNodeId.value) {
+    addConnection(lastSelectedId, selectedNodeId.value)
+    lastSelectedId = null
+  } else {
+    lastSelectedId = selectedNodeId.value
+  }
+}
 </script>
+
 <style>
-.designer { padding: 20px; }
-.canvas { position: relative; width: 800px; height: 400px; border: 1px solid #ddd; background: #fafafa; }
-.node { position: absolute; padding: 10px 20px; background: #1890ff; color: white; border-radius: 4px; cursor: pointer; min-width: 80px; text-align: center; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.app-header h1 { font-size: 18px; font-weight: 600; color: #333; }
+.header-actions { display: flex; gap: 8px; }
+.btn {
+  padding: 6px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.btn:hover { border-color: #1890ff; color: #1890ff; }
+.app-body { display: flex; flex: 1; overflow: hidden; }
 </style>
