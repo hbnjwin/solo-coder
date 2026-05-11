@@ -13,18 +13,23 @@ pub struct ExportFilter {
     pub end_date: Option<String>, pub approver: Option<String>,
 }
 
-/// TODO: filter not implemented - returns all records
+/// BUG: filter not implemented - returns all records
 pub fn filter_records(records: &[ApprovalRecord], _filter: &ExportFilter) -> Vec<ApprovalRecord> {
     records.to_vec()
 }
 
-/// TODO: sort not implemented
+/// BUG: sort not implemented
 pub fn sort_records(_records: &mut [ApprovalRecord], _field: &str, _dir: &str) {}
 
+/// BUG: CSV export doesn't escape commas, quotes, or newlines in field values
 pub fn export_csv(records: &[ApprovalRecord]) -> Result<String> {
-    let mut wtr = csv::Writer::from_writer(vec![]);
-    for rec in records { wtr.serialize(rec)?; }
-    Ok(String::from_utf8(wtr.into_inner()?)?)
+    let mut lines = Vec::new();
+    lines.push("id,contract_name,amount,status,approver,create_time".to_string());
+    for rec in records {
+        // BUG: no escaping - commas/quotes/newlines in values break CSV format
+        lines.push(format!("{},{},{},{},{},{}", rec.id, rec.contract_name, rec.amount, rec.status, rec.approver, rec.create_time));
+    }
+    Ok(lines.join("\n"))
 }
 
 pub fn export_json(records: &[ApprovalRecord]) -> Result<String> {
@@ -46,7 +51,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let records = vec![
         ApprovalRecord { id: "1".into(), contract_name: "Contract A".into(), amount: 500000.0, status: "approved".into(), approver: "zhangsan".into(), create_time: "2026-01-15".into() },
-        ApprovalRecord { id: "2".into(), contract_name: "Contract B".into(), amount: 2000000.0, status: "pending".into(), approver: "lisi".into(), create_time: "2026-03-20".into() },
+        ApprovalRecord { id: "2".into(), contract_name: "Contract B, Inc.".into(), amount: 2000000.0, status: "pending".into(), approver: "lisi".into(), create_time: "2026-03-20".into() },
     ];
     let filter = ExportFilter { status: cli.status, start_date: cli.start_date, end_date: cli.end_date, approver: cli.approver };
     let filtered = filter_records(&records, &filter);
@@ -56,4 +61,37 @@ fn main() -> Result<()> {
         _ => anyhow::bail!("unsupported format"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_csv_escape_comma() {
+        let records = vec![ApprovalRecord { id: "1".into(), contract_name: "A, B Corp".into(), amount: 100.0, status: "ok".into(), approver: "zhang".into(), create_time: "2026-01-01".into() }];
+        let csv = export_csv(&records).unwrap();
+        // Value with comma must be quoted
+        assert!(csv.contains("\"A, B Corp\""), "CSV should escape commas with quotes");
+    }
+
+    #[test]
+    fn test_csv_escape_quote() {
+        let records = vec![ApprovalRecord { id: "1".into(), contract_name: "A \"Premium\" Deal".into(), amount: 100.0, status: "ok".into(), approver: "zhang".into(), create_time: "2026-01-01".into() }];
+        let csv = export_csv(&records).unwrap();
+        // Internal quotes must be doubled
+        assert!(csv.contains("\"A \"\"Premium\"\" Deal\""), "CSV should escape internal quotes by doubling");
+    }
+
+    #[test]
+    fn test_filter_by_status() {
+        let records = vec![
+            ApprovalRecord { id: "1".into(), contract_name: "A".into(), amount: 100.0, status: "approved".into(), approver: "z".into(), create_time: "2026-01-01".into() },
+            ApprovalRecord { id: "2".into(), contract_name: "B".into(), amount: 200.0, status: "pending".into(), approver: "z".into(), create_time: "2026-01-02".into() },
+        ];
+        let filter = ExportFilter { status: Some("approved".into()), start_date: None, end_date: None, approver: None };
+        let filtered = filter_records(&records, &filter);
+        assert_eq!(filtered.len(), 1, "should filter to only approved records");
+        assert_eq!(filtered[0].id, "1");
+    }
 }
