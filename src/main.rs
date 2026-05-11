@@ -1,81 +1,54 @@
+use std::fs;
+use std::process;
+
 use anyhow::Result;
-use chrono::Local;
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AuditLevel { Error, Warn, Info, Debug }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuditEntry {
-    pub trace_id: String, pub timestamp: String, pub operator: String,
-    pub action: String, pub target_id: String, pub level: AuditLevel, pub detail: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FieldChange { pub field: String, pub old_value: String, pub new_value: String }
-
-pub struct AuditStore { entries: Vec<AuditEntry> }
-
-impl AuditStore {
-    pub fn new() -> Self { Self { entries: Vec::new() } }
-    pub fn append(&mut self, entry: AuditEntry) { self.entries.push(entry); }
-    pub fn query_by_trace_id(&self, trace_id: &str) -> Vec<&AuditEntry> {
-        self.entries.iter().filter(|e| e.trace_id == trace_id).collect()
-    }
-}
-
-/// TODO: not implemented - should support nested objects and arrays
-pub fn compute_field_diff(_old: &serde_json::Value, _new: &serde_json::Value) -> Vec<FieldChange> {
-    vec![]
-}
+use audit_trail::differ::compute_diff;
+use audit_trail::formatter::format_changes;
+use audit_trail::models::DiffOptions;
 
 #[derive(Parser, Debug)]
-#[command(name = "audit-trail", about = "Approval audit trail system")]
-struct Cli { #[arg(long, default_value = "trace-001")] trace_id: String }
+#[command(name = "audit-trail", about = "Compute field-level diffs between JSON documents")]
+struct Cli {
+    /// Path to the original JSON file
+    #[arg(short, long)]
+    old: String,
+
+    /// Path to the updated JSON file
+    #[arg(short, long)]
+    new: String,
+
+    /// Output format: text, json, table
+    #[arg(short, long, default_value = "text")]
+    format: String,
+}
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let mut store = AuditStore::new();
-    store.append(AuditEntry {
-        trace_id: cli.trace_id.clone(), timestamp: Local::now().to_rfc3339(),
-        operator: "zhangsan".into(), action: "submit".into(), target_id: "contract-001".into(),
-        level: AuditLevel::Info, detail: "submitted for approval".into(),
+
+    let old_content = fs::read_to_string(&cli.old).unwrap_or_else(|e| {
+        eprintln!("Failed to read {}: {}", cli.old, e);
+        process::exit(1);
     });
-    for e in store.query_by_trace_id(&cli.trace_id) {
-        println!("{}", serde_json::to_string(e)?);
-    }
+    let new_content = fs::read_to_string(&cli.new).unwrap_or_else(|e| {
+        eprintln!("Failed to read {}: {}", cli.new, e);
+        process::exit(1);
+    });
+
+    let old_val: Value = serde_json::from_str(&old_content)?;
+    let new_val: Value = serde_json::from_str(&new_content)?;
+
+    let options = DiffOptions::default();
+    let changes = compute_diff(&old_val, &new_val, &options);
+
+    let output = match cli.format.as_str() {
+        "json" => audit_trail::formatter::to_json(&changes)?,
+        "table" => audit_trail::formatter::to_table(&changes),
+        _ => format_changes(&changes),
+    };
+
+    println!("{}", output);
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_simple_field_diff() {
-        let old = serde_json::json!({"amount": 10000});
-        let new = serde_json::json!({"amount": 15000});
-        let changes = compute_field_diff(&old, &new);
-        assert!(!changes.is_empty(), "should detect amount change");
-        assert!(changes.iter().any(|c| c.field == "amount" && c.old_value == "10000" && c.new_value == "15000"));
-    }
-
-    #[test]
-    fn test_nested_object_diff() {
-        let old = serde_json::json!({"approver": {"name": "zhangsan", "level": 2}});
-        let new = serde_json::json!({"approver": {"name": "lisi", "level": 2}});
-        let changes = compute_field_diff(&old, &new);
-        assert!(!changes.is_empty(), "should detect nested change");
-        assert!(changes.iter().any(|c| c.field == "approver.name" && c.old_value == "zhangsan" && c.new_value == "lisi"),
-            "should use dot notation for nested fields");
-    }
-
-    #[test]
-    fn test_array_diff() {
-        let old = serde_json::json!({"tags": ["urgent", "finance"]});
-        let new = serde_json::json!({"tags": ["urgent", "finance", "contract"]});
-        let changes = compute_field_diff(&old, &new);
-        assert!(!changes.is_empty(), "should detect array change");
-    }
 }
