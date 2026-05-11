@@ -1,0 +1,1 @@
+{"root":["./src/env.d.ts","./src/main.ts","./src/types.ts","./src/api/mockdata.ts","./src/composables/usecontractdetail.ts","./src/composables/usecontractlist.ts","./src/app.vue","./src/components/contractdetail.vue","./src/components/contractlist.vue","./src/components/loadingspinner.vue"],"version":"5.9.3"}
