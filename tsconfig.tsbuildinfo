@@ -1,0 +1,1 @@
+{"root":["./src/env.d.ts","./src/main.ts","./src/types.ts","./src/composables/usenotifications.ts","./src/services/pushsimulator.ts","./src/app.vue","./src/components/headerbar.vue","./src/components/notificationbadge.vue","./src/components/notificationitem.vue","./src/components/notificationlist.vue"],"version":"5.9.3"}
