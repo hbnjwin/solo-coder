@@ -11,9 +11,12 @@
       </div>
       <div class="detail">
         <h3>付款明细</h3>
-        <!-- BUG: detail table does not always refresh -->
+        <!-- BUG: detail table does not always refresh when selectedId changes -->
+        <!-- BUG: fast consecutive clicks cause flickering / wrong data briefly -->
         <table><thead><tr><th>期次</th><th>金额</th><th>状态</th></tr></thead>
         <tbody><tr v-for="d in details" :key="d.period"><td>{{ d.period }}</td><td>{{ d.amount }}</td><td>{{ d.status }}</td></tr></tbody></table>
+        <!-- TODO: loading state -->
+        <!-- TODO: empty state -->
       </div>
     </div>
   </div>
@@ -33,6 +36,7 @@ const allDetails: Record<string, Detail[]> = {
   C003: [{ period: 1, amount: 800000, status: '未付' }],
 }
 const selectedId = ref('')
+// BUG: computed doesn't handle race condition on fast clicks
 const details = computed(() => { if (!selectedId.value) return []; return allDetails[selectedId.value] || [] })
 function selectContract(id: string) { selectedId.value = id }
 </script>
