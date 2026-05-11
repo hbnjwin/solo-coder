@@ -1,0 +1,29 @@
+# Exclude projects directory
+projects/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+node_modules/
+dist/
+
+# Temp files
+*.tmp
+*.bak
+temp_data.json
