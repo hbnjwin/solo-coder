@@ -1,33 +1,47 @@
 <template>
-  <div class="container">
-    <h2>合同审批表单</h2>
-    <form @submit.prevent="handleSubmit">
-      <div class="field"><label>合同名称</label><input v-model="form.contractName" placeholder="请输入合同名称" /></div>
-      <div class="field"><label>金额</label><input v-model.number="form.amount" type="number" placeholder="请输入金额" /></div>
-      <div class="field"><label>审批人</label>
-        <!-- BUG: no "总经理" option even when amount > 100万 -->
-        <select v-model="form.approver"><option value="">请选择</option><option value="manager">部门经理</option></select>
+  <div id="app-root">
+    <header class="app-header">
+      <nav class="tab-nav">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          :class="['tab-btn', { active: currentTab === tab.id }]"
+          @click="currentTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+    </header>
+    <main class="app-main">
+      <ApprovalForm v-if="currentTab === 'form'" />
+      <div v-else-if="currentTab === 'history'" class="placeholder">
+        <p>审批历史记录（开发中）</p>
       </div>
-      <div class="field"><label>日期</label><input v-model="form.date" type="date" /></div>
-      <!-- BUG: no validation at all -->
-      <button type="submit">提交</button>
-    </form>
-    <p v-if="submitted">已提交: {{ JSON.stringify(form) }}</p>
+    </main>
   </div>
 </template>
+
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-const form = reactive({ contractName: '', amount: 0, approver: '', date: '' })
-const submitted = ref(false)
-function handleSubmit() {
-  // BUG: no validation - any data can be submitted
-  submitted.value = true
-}
+import { ref } from 'vue'
+import ApprovalForm from './components/ApprovalForm.vue'
+
+const tabs = [
+  { id: 'form', label: '新建审批' },
+  { id: 'history', label: '审批历史' },
+]
+
+const currentTab = ref('form')
 </script>
+
 <style>
-.container { max-width: 600px; margin: 40px auto; padding: 20px; }
-.field { margin-bottom: 16px; }
-.field label { display: block; margin-bottom: 4px; font-weight: bold; }
-.field input, .field select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-button { padding: 10px 24px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
+#app-root { min-height: 100vh; }
+.app-header { background: white; border-bottom: 1px solid #e8e8e8; padding: 0 24px; }
+.tab-nav { display: flex; gap: 0; }
+.tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #666; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab-btn.active { color: #1890ff; border-bottom-color: #1890ff; }
+.tab-btn:hover { color: #1890ff; }
+.app-main { padding: 32px 24px; }
+.placeholder { text-align: center; padding: 60px; color: #999; }
 </style>
