@@ -1,79 +1,62 @@
 use anyhow::Result;
 use clap::Parser;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApprovalRecord { pub id: String, pub status: String, pub approver: String, pub version: u64 }
-
-pub struct ApprovalStore { records: HashMap<String, ApprovalRecord> }
-
-impl ApprovalStore {
-    pub fn new() -> Self { Self { records: HashMap::new() } }
-    pub fn get(&self, id: &str) -> Option<ApprovalRecord> { self.records.get(id).cloned() }
-    /// BUG: does not check version for optimistic locking
-    pub fn update(&mut self, record: ApprovalRecord) -> Result<()> {
-        self.records.insert(record.id.clone(), record);
-        Ok(())
-    }
-    pub fn insert(&mut self, record: ApprovalRecord) { self.records.insert(record.id.clone(), record); }
-}
-
-/// BUG: read-then-write not atomic, no version check
-/// BUG: even if retry is added, it would use stale version from first read
-pub fn approve_record(store: Arc<Mutex<ApprovalStore>>, record_id: &str, approver: &str) -> Result<()> {
-    let mut s = store.lock().unwrap();
-    let record = s.get(record_id).ok_or_else(|| anyhow::anyhow!("record not found"))?;
-    let mut updated = record.clone();
-    updated.status = "approved".into();
-    updated.approver = approver.into();
-    updated.version += 1;
-    s.update(updated)
-}
+use concurrent_approval::audit::AuditLog;
+use concurrent_approval::models::ApprovalRecord;
+use concurrent_approval::service::ApprovalService;
+use concurrent_approval::store::ApprovalStore;
 
 #[derive(Parser, Debug)]
-#[command(name = "concurrent-approval", about = "Concurrent approval controller")]
-struct Cli { #[arg(long, default_value = "rec-001")] record_id: String }
+#[command(name = "concurrent-approval", about = "Concurrent approval workflow controller")]
+struct Cli {
+    /// The record ID to operate on
+    #[arg(long, default_value = "rec-001")]
+    record_id: String,
 
-fn main() -> Result<()> {
-    let store = Arc::new(Mutex::new(ApprovalStore::new()));
-    store.lock().unwrap().insert(ApprovalRecord { id: "rec-001".into(), status: "pending".into(), approver: "".into(), version: 1 });
-    approve_record(store.clone(), "rec-001", "zhangsan")?;
-    let rec = store.lock().unwrap().get("rec-001").unwrap();
-    println!("record: {}", serde_json::to_string(&rec)?);
-    Ok(())
+    /// The approver name
+    #[arg(long, default_value = "admin")]
+    approver: String,
+
+    /// Action to perform: approve, reject, status
+    #[arg(long, default_value = "approve")]
+    action: String,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::thread;
+fn main() -> Result<()> {
+    let cli = Cli::parse();
 
-    #[test]
-    fn test_concurrent_overwrites() {
-        let store = Arc::new(Mutex::new(ApprovalStore::new()));
-        store.lock().unwrap().insert(ApprovalRecord { id: "rec-1".into(), status: "pending".into(), approver: "".into(), version: 1 });
-        let mut handles = vec![];
-        for i in 0..5 {
-            let s = store.clone();
-            handles.push(thread::spawn(move || approve_record(s, "rec-1", &format!("user-{}", i))));
+    let store = Arc::new(Mutex::new(ApprovalStore::new()));
+    let audit = Arc::new(Mutex::new(AuditLog::new()));
+    let service = ApprovalService::new(store.clone(), audit.clone());
+
+    // Create a sample record if it doesn't exist
+    let record_id = &cli.record_id;
+    if !store.lock().unwrap().contains(record_id) {
+        let record = ApprovalRecord::new(record_id, "Sample Approval Request");
+        store.lock().unwrap().insert(record)?;
+    }
+
+    match cli.action.as_str() {
+        "approve" => {
+            service.approve_record(record_id, &cli.approver)?;
+            let rec = service.get_record(record_id)?;
+            println!("{}", serde_json::to_string_pretty(&rec)?);
         }
-        let successes: usize = handles.into_iter().map(|h| h.join().unwrap()).filter(|r| r.is_ok()).count();
-        assert!(successes <= 1, "only one should succeed, got {}", successes);
+        "reject" => {
+            service.reject_record(record_id, &cli.approver)?;
+            let rec = service.get_record(record_id)?;
+            println!("{}", serde_json::to_string_pretty(&rec)?);
+        }
+        "status" => {
+            let rec = service.get_record(record_id)?;
+            println!("{}", serde_json::to_string_pretty(&rec)?);
+        }
+        other => {
+            eprintln!("unknown action: {}", other);
+            std::process::exit(1);
+        }
     }
 
-    #[test]
-    fn test_version_check_on_update() {
-        let mut store = ApprovalStore::new();
-        store.insert(ApprovalRecord { id: "r1".into(), status: "pending".into(), approver: "".into(), version: 1 });
-        // Simulate: read with version 1, but someone else already updated to version 2
-        let mut record = store.get("r1").unwrap();
-        record.version = 1; // stale version
-        record.status = "approved".into();
-        // BUG: update should fail because version mismatch (stored=1, but conceptually should be 2)
-        // Currently succeeds because no version check
-        let result = store.update(record);
-        assert!(result.is_err(), "update with stale version should fail");
-    }
+    Ok(())
 }
