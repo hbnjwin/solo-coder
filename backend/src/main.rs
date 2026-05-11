@@ -1,62 +1,55 @@
 use anyhow::Result;
+use chrono::Utc;
 use clap::Parser;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApprovalTask {
-    pub id: String,
-    pub approver: String,
-    pub approver_level: u32, // 1=employee, 2=manager, 3=gm, 4=admin
-    pub status: String,
-    pub submitted_at: String,
-    pub escalated: bool,
-}
-
-/// BUG: not implemented - should check submitted_at + timeout > now
-pub fn check_escalation(tasks: &mut Vec<ApprovalTask>, timeout_hours: u64) -> Vec<String> {
-    // TODO: implement
-    vec![]
-}
-
-/// BUG: no upper limit check - if admin doesn't handle, escalation continues forever
-pub fn get_escalation_target(level: u32) -> Option<String> {
-    match level {
-        1 => Some("manager".into()),
-        2 => Some("gm".into()),
-        3 => Some("admin".into()),
-        // BUG: level 4+ should return None (no more escalation) but doesn't
-        _ => Some("super_admin".into()), // BUG: creates infinite escalation chain
-    }
-}
+use workflow_escalation_backend::checker::{check_escalation, pending_requests};
+use workflow_escalation_backend::escalator::apply_escalation;
+use workflow_escalation_backend::models::{ApprovalRequest, EscalationRule};
 
 #[derive(Parser, Debug)]
-#[command(name = "workflow-escalation", about = "Approval timeout escalation")]
-struct Cli { #[arg(long, default_value = "24")] timeout_hours: u64 }
+#[command(name = "workflow-escalation", about = "Approval workflow escalation engine")]
+struct Cli {
+    #[arg(long, default_value = "60")]
+    timeout_minutes: i64,
 
-fn main() -> Result<()> {
-    let mut tasks = vec![ApprovalTask { id: "t1".into(), approver: "zhangsan".into(), approver_level: 2, status: "pending".into(), submitted_at: "2026-05-10T08:00:00Z".into(), escalated: false }];
-    let escalated = check_escalation(&mut tasks, 24);
-    println!("escalated: {:?}", escalated);
-    Ok(())
+    #[arg(long, default_value = "3")]
+    max_level: u32,
+
+    #[arg(long)]
+    input: Option<String>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn main() -> Result<()> {
+    let cli = Cli::parse();
 
-    #[test]
-    fn test_escalation_has_upper_limit() {
-        // Level 4 (admin) should not escalate further
-        let target = get_escalation_target(4);
-        assert!(target.is_none(), "admin level should have no further escalation target");
+    let rule = EscalationRule {
+        timeout_minutes: cli.timeout_minutes,
+        max_level: cli.max_level,
+        notify_on_escalate: true,
+    };
+
+    let requests: Vec<ApprovalRequest> = match &cli.input {
+        Some(path) => {
+            let data = std::fs::read_to_string(path)?;
+            serde_json::from_str(&data)?
+        }
+        None => Vec::new(),
+    };
+
+    let now = Utc::now();
+    let overdue = check_escalation(&requests, &rule, now);
+
+    let pending = pending_requests(&requests);
+    println!("Pending requests: {}", pending.len());
+    println!("Overdue request IDs: {:?}", overdue);
+
+    for id in &overdue {
+        if let Some(req) = requests.iter().find(|r| &r.id == id) {
+            if let Some(event) = apply_escalation(&req.id, req.escalation_level) {
+                println!("Escalation: {} -> {}", event.target_approver, event.to_level);
+            }
+        }
     }
 
-    #[test]
-    fn test_check_escalation_not_implemented() {
-        let mut tasks = vec![ApprovalTask { id: "t1".into(), approver: "zhangsan".into(), approver_level: 2, status: "pending".into(), submitted_at: "2026-01-01T00:00:00Z".into(), escalated: false }];
-        let escalated = check_escalation(&mut tasks, 24);
-        // Should detect timeout but returns empty
-        assert!(!escalated.is_empty(), "should detect timed-out task");
-    }
+    Ok(())
 }
