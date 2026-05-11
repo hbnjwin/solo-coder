@@ -1,0 +1,15 @@
+{
+    "name": "approval-chain",
+    "start_node": "request",
+    "nodes": [
+        { "id": "request", "node_type": "start" },
+        { "id": "manager_review", "node_type": "action" },
+        { "id": "director_review", "node_type": "action" },
+        { "id": "closed", "node_type": "end" }
+    ],
+    "transitions": [
+        { "from": "request", "to": "manager_review" },
+        { "from": "manager_review", "to": "director_review" },
+        { "from": "director_review", "to": "closed" }
+    ]
+}

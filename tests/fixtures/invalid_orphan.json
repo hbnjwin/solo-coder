@@ -1,0 +1,13 @@
+{
+    "name": "notification-flow",
+    "start_node": "trigger",
+    "nodes": [
+        { "id": "trigger", "node_type": "start" },
+        { "id": "send", "node_type": "action" },
+        { "id": "done", "node_type": "end" }
+    ],
+    "transitions": [
+        { "from": "trigger", "to": "send" },
+        { "from": "send", "to": "archive" }
+    ]
+}

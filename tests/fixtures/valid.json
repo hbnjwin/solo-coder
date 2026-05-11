@@ -1,0 +1,14 @@
+{
+    "name": "deploy-pipeline",
+    "start_node": "init",
+    "nodes": [
+        { "id": "init", "node_type": "start" },
+        { "id": "build", "node_type": "action" },
+        { "id": "deploy", "node_type": "end" }
+    ],
+    "transitions": [
+        { "from": "init", "to": "build" },
+        { "from": "build", "to": "deploy" },
+        { "from": "deploy", "to": "init" }
+    ]
+}
