@@ -26,6 +26,7 @@ impl ApprovalRoute {
     pub fn current_node(&self) -> Option<&ApprovalNode> {
         self.nodes.get(self.current_node_idx)
     }
+    /// BUG: advance() doesn't validate that next_node_id points to an existing node
     pub fn advance(&mut self) -> Result<&ApprovalNode> {
         if self.current_node_idx + 1 >= self.nodes.len() {
             anyhow::bail!("already at last node");
@@ -74,6 +75,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_conditional_branching_missing() {
         let route = build_linear_route("r1", vec!["manager"]);
@@ -81,5 +83,18 @@ mod tests {
         ctx.insert("amount".into(), serde_json::json!(2000000));
         let approver = resolve_next_approver(&route, &ctx).unwrap();
         assert_eq!(approver, "manager"); // BUG: should be "ceo" for amount > 1M
+    }
+
+    #[test]
+    fn test_advance_validates_next_node_exists() {
+        let mut route = ApprovalRoute::new("r1", "test", vec![
+            ApprovalNode { id: "n1".into(), name: "Step 1".into(), approver: "alice".into(), next_node_id: Some("nonexistent".into()) },
+            ApprovalNode { id: "n2".into(), name: "Step 2".into(), approver: "bob".into(), next_node_id: None },
+        ]);
+        // BUG: advance should check that next_node_id points to a valid node
+        // Currently it just increments the index without validation
+        let result = route.advance();
+        // After fix: should return Err because n1's next_node_id="nonexistent" doesn't match n2
+        assert!(result.is_err(), "advance should validate next_node_id points to existing node");
     }
 }
