@@ -12,7 +12,8 @@ pub struct DelegationRule {
     pub reason: String,
 }
 
-/// Resolve effective approver. TODO: support delegation chains (A->B->C)
+/// Resolve effective approver. Only checks direct delegation, no chain support.
+/// BUG: doesn't follow delegation chains (A->B->C returns B instead of C)
 pub fn resolve_approver(original: &str, delegations: &[DelegationRule], today: &str) -> Result<String> {
     for d in delegations {
         if d.from_approver == original && today >= &d.start_date && today <= &d.end_date {
@@ -49,6 +50,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_circular_not_detected() {
         let delegations = vec![
@@ -57,6 +59,7 @@ mod tests {
         ];
         assert!(detect_circular_delegation(&delegations).is_err(), "circular should be detected");
     }
+
     #[test]
     fn test_chain_not_supported() {
         let delegations = vec![
@@ -65,5 +68,16 @@ mod tests {
         ];
         let result = resolve_approver("a", &delegations, "2026-06-01").unwrap();
         assert_eq!(result, "c", "should follow chain to final approver");
+    }
+
+    #[test]
+    fn test_expired_link_in_chain() {
+        // A->B (active), B->C (expired) => should skip B->C and return B
+        let delegations = vec![
+            DelegationRule { from_approver: "a".into(), to_approver: "b".into(), start_date: "2026-01-01".into(), end_date: "2026-12-31".into(), reason: "".into() },
+            DelegationRule { from_approver: "b".into(), to_approver: "c".into(), start_date: "2026-01-01".into(), end_date: "2026-03-01".into(), reason: "".into() },
+        ];
+        let result = resolve_approver("a", &delegations, "2026-06-01").unwrap();
+        assert_eq!(result, "b", "expired link should be skipped, return last valid approver");
     }
 }
