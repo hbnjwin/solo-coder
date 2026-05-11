@@ -75,7 +75,52 @@ impl StateMachine {
     }
 }
 
-// FIXME: consider caching path results for frequently used transitions
+fn can_reach(
+    machine: &StateMachine,
+    from: &ApprovalState,
+    target: &ApprovalState,
+) -> bool {
+    let mut visited = std::collections::HashSet::new();
+    let mut queue = vec![from.clone()];
+    visited.insert(from.clone());
+
+    while let Some(current) = queue.pop() {
+        for rule in machine.get_available_transitions(&current) {
+            if &rule.to == target {
+                return true;
+            }
+            if !visited.contains(&rule.to) {
+                visited.insert(rule.to.clone());
+                queue.push(rule.to.clone());
+            }
+        }
+    }
+    false
+}
+
+fn path_would_create_cycle(machine: &StateMachine, path: &[ApprovalState]) -> bool {
+    if path.len() <= 1 {
+        return false;
+    }
+
+    let start = path.first().unwrap();
+
+    for (i, state) in path.iter().enumerate() {
+        for rule in machine.get_available_transitions(state) {
+            if &rule.to == state {
+                continue;
+            }
+            if &rule.to == start || path[..i].contains(&rule.to) {
+                return true;
+            }
+            if can_reach(machine, &rule.to, start) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 pub fn find_path(
     machine: &StateMachine,
     from: &ApprovalState,
@@ -86,22 +131,25 @@ pub fn find_path(
     }
 
     let mut queue: Vec<Vec<ApprovalState>> = vec![vec![from.clone()]];
-    let mut steps = 0;
+    let mut visited = std::collections::HashSet::new();
+    visited.insert(from.clone());
 
     while !queue.is_empty() {
         let path = queue.remove(0);
-        steps += 1;
-
-        if steps > 200 {
-            return None;
-        }
-
         let current = path.last().unwrap();
-        let transitions = machine.get_available_transitions(current);
 
-        for rule in transitions {
+        for rule in machine.get_available_transitions(current) {
+            if visited.contains(&rule.to) {
+                continue;
+            }
+            visited.insert(rule.to.clone());
+
             let mut new_path = path.clone();
             new_path.push(rule.to.clone());
+
+            if path_would_create_cycle(machine, &new_path) {
+                continue;
+            }
 
             if rule.to == *to {
                 return Some(new_path);

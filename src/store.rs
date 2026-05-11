@@ -69,7 +69,7 @@ pub fn cleanup_stale_workflows(
         if let Some(wf) = store.get(&id) {
             let wf_ts = parse_timestamp(&wf.updated_at);
             let age = now_ts.saturating_sub(wf_ts);
-            if age < ttl_secs {
+            if age > ttl_secs {
                 removed.push(id.clone());
                 store.remove(&id);
             }
