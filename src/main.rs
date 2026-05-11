@@ -1,88 +1,39 @@
 use anyhow::Result;
 use clap::Parser;
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct QueryTemplate {
-    pub id: String,
-    pub sql: String,
-    pub params: HashMap<String, String>,
-}
-
-/// BUG: directly interpolates user input into SQL string - injection risk!
-pub fn parse_template(template: &QueryTemplate) -> String {
-    let mut sql = template.sql.clone();
-    for (key, value) in &template.params {
-        sql = sql.replace(&format!("{{{}}}", key), value);
-    }
-    sql
-}
-
-/// BUG: no validation at all - even Unicode bypass passes
-pub fn validate_param_value(_value: &str) -> Result<()> {
-    Ok(())
-}
-
-/// TODO: not yet implemented - should use $1, $2 placeholders
-pub fn build_parameterized_query(_template: &QueryTemplate) -> Result<(String, Vec<String>)> {
-    anyhow::bail!("not implemented")
-}
+use query_def_safety::models::{QueryParam, QueryTemplate};
+use query_def_safety::template::render_template;
+use query_def_safety::validator::validate_param;
 
 #[derive(Parser, Debug)]
-#[command(name = "query-def-safety", about = "SQL query template engine")]
+#[command(name = "query-def-safety", about = "SQL query template engine with safety checks")]
 struct Cli {
-    #[arg(long, default_value = "SELECT * FROM contracts WHERE dept = {dept}")]
+    #[arg(long, help = "SQL template with {{param}} placeholders")]
     template: String,
-    #[arg(long, default_value = "finance")]
-    dept: String,
+
+    #[arg(long, help = "Parameters as JSON object, e.g. '{\"name\":\"value\"}'")]
+    params: String,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let mut params = HashMap::new();
-    params.insert("dept".into(), cli.dept.clone());
-    let tmpl = QueryTemplate { id: "q1".into(), sql: cli.template, params };
-    let sql = parse_template(&tmpl);
-    println!("generated SQL: {}", sql);
+
+    let params_map: std::collections::HashMap<String, String> =
+        serde_json::from_str(&cli.params)?;
+
+    let params: Vec<QueryParam> = params_map
+        .into_iter()
+        .map(|(k, v)| QueryParam::text(k, v))
+        .collect();
+
+    for param in &params {
+        validate_param(param)?;
+    }
+
+    let template = QueryTemplate::new("cli_query", &cli.template, params);
+    let result = render_template(&template)?;
+
+    println!("{}", result);
+
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_sql_injection_vulnerability() {
-        let mut params = HashMap::new();
-        params.insert("dept".into(), "finance; DROP TABLE contracts; --".into());
-        let tmpl = QueryTemplate { id: "q1".into(), sql: "SELECT * FROM t WHERE dept = {dept}".into(), params };
-        let sql = parse_template(&tmpl);
-        assert!(sql.contains("DROP TABLE"), "injection should be blocked but isn't");
-    }
-
-    #[test]
-    fn test_validate_allows_everything() {
-        assert!(validate_param_value("'; DROP TABLE x; --").is_ok());
-    }
-
-    #[test]
-    fn test_unicode_bypass_not_blocked() {
-        // Fullwidth Unicode characters can bypass keyword filtering
-        // ＤＲＯＰ (fullwidth) should be detected as DROP equivalent
-        let result = validate_param_value("ＤＲｏＰ TABLE x");
-        // BUG: should fail for Unicode bypass but doesn't
-        assert!(result.is_err(), "Unicode bypass should be detected");
-    }
-
-    #[test]
-    fn test_parameterized_query_not_implemented() {
-        let mut params = HashMap::new();
-        params.insert("dept".into(), "finance".into());
-        let tmpl = QueryTemplate { id: "q1".into(), sql: "SELECT * FROM t WHERE dept = {dept}".into(), params };
-        let result = build_parameterized_query(&tmpl);
-        // After fix: should return Ok with ($1, ["finance"])
-        assert!(result.is_ok(), "parameterized query should be implemented");
-    }
 }
