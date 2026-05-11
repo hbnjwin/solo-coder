@@ -22,9 +22,13 @@ const notifications = ref<Notif[]>([
   { id: 2, title: '系统维护通知', type: '系统', time: '09:30', read: false },
   { id: 3, title: '合同B已通过', type: '审批', time: '昨天', read: true },
 ])
+// BUG: badge count not reactive after clearAll
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 function markRead(id: number) { const n = notifications.value.find(n => n.id === id); if (n) n.read = true }
+// BUG: clearAll empties the list but badge may still show stale count
 function clearAll() { notifications.value = [] }
+// TODO: setInterval for real-time push simulation
+// TODO: handle re-push of already-read notifications
 </script>
 <style>
 .container { padding: 20px; position: relative; }
