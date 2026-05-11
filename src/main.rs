@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -19,7 +20,7 @@ pub fn parse_template(template: &QueryTemplate) -> String {
     sql
 }
 
-/// BUG: no validation at all
+/// BUG: no validation at all - even Unicode bypass passes
 pub fn validate_param_value(_value: &str) -> Result<()> {
     Ok(())
 }
@@ -51,6 +52,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_sql_injection_vulnerability() {
         let mut params = HashMap::new();
@@ -59,8 +61,28 @@ mod tests {
         let sql = parse_template(&tmpl);
         assert!(sql.contains("DROP TABLE"), "injection should be blocked but isn't");
     }
+
     #[test]
     fn test_validate_allows_everything() {
         assert!(validate_param_value("'; DROP TABLE x; --").is_ok());
+    }
+
+    #[test]
+    fn test_unicode_bypass_not_blocked() {
+        // Fullwidth Unicode characters can bypass keyword filtering
+        // ＤＲＯＰ (fullwidth) should be detected as DROP equivalent
+        let result = validate_param_value("ＤＲｏＰ TABLE x");
+        // BUG: should fail for Unicode bypass but doesn't
+        assert!(result.is_err(), "Unicode bypass should be detected");
+    }
+
+    #[test]
+    fn test_parameterized_query_not_implemented() {
+        let mut params = HashMap::new();
+        params.insert("dept".into(), "finance".into());
+        let tmpl = QueryTemplate { id: "q1".into(), sql: "SELECT * FROM t WHERE dept = {dept}".into(), params };
+        let result = build_parameterized_query(&tmpl);
+        // After fix: should return Ok with ($1, ["finance"])
+        assert!(result.is_ok(), "parameterized query should be implemented");
     }
 }
