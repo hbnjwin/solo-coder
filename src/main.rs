@@ -20,6 +20,7 @@ pub struct FieldMapping {
 
 /// BUG: uses unwrap() on optional values, causing panic on None
 /// BUG: uses direct index on arrays, causing panic on out-of-bounds
+/// BUG: no circular reference detection in recursive parsing
 pub fn parse_deal_content(json_str: &str) -> Result<DealContentNode> {
     let value: serde_json::Value = serde_json::from_str(json_str)
         .with_context(|| "failed to parse dealcontent JSON")?;
@@ -38,6 +39,7 @@ pub fn parse_deal_content(json_str: &str) -> Result<DealContentNode> {
     }
     let children_arr = obj["children"].as_array().unwrap(); // BUG: unwrap on missing key
     let mut children = Vec::new();
+    // BUG: no circular reference detection - recursive call without tracking visited IDs
     for c in children_arr {
         let child_json = serde_json::to_string(c).unwrap(); // BUG
         children.push(parse_deal_content(&child_json)?);
@@ -59,22 +61,34 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_parse_valid() {
         let json = r#"{"nodeId":"root","nodeType":"start","fields":[],"children":[]}"#;
         let node = parse_deal_content(json).unwrap();
         assert_eq!(node.node_id, "root");
     }
+
     #[test]
     fn test_missing_fields_panics() {
         let json = r#"{"nodeId":"root","nodeType":"start"}"#;
         let result = parse_deal_content(json);
         assert!(result.is_err(), "should return error not panic");
     }
+
     #[test]
     fn test_missing_children_panics() {
         let json = r#"{"nodeId":"root","nodeType":"start","fields":[]}"#;
         let result = parse_deal_content(json);
         assert!(result.is_err(), "should return error not panic");
+    }
+
+    #[test]
+    fn test_circular_reference_not_detected() {
+        // A -> B -> A (circular) should be detected and return error
+        // Currently causes infinite recursion / stack overflow
+        let json = r#"{"nodeId":"A","nodeType":"start","fields":[],"children":[{"nodeId":"B","nodeType":"approval","fields":[],"children":[{"nodeId":"A","nodeType":"start","fields":[],"children":[]}]}]}"#;
+        let result = parse_deal_content(json);
+        assert!(result.is_err(), "circular reference should be detected and return error");
     }
 }
