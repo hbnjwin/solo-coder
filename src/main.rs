@@ -59,7 +59,7 @@ mod tests {
             let s = store.clone();
             handles.push(thread::spawn(move || approve_record(s, "rec-1", &format!("user-{}", i))));
         }
-        let successes: Vec<_> = handles.into_iter().filter(|h| h.join().unwrap().is_ok()).count();
+        let successes: usize = handles.into_iter().map(|h| h.join().unwrap()).filter(|r| r.is_ok()).count();
         assert!(successes <= 1, "only one should succeed, got {}", successes);
     }
 
