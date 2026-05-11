@@ -24,9 +24,12 @@ pub fn evaluate_rule(rule: &ValidationRule, record: &HashMap<String, serde_json:
         None => ValidationResult { rule_id: rule.id.clone(), passed: false, message: format!("field '{}' not found", rule.field) },
         Some(val) => {
             let passed = match rule.operator.as_str() {
+                // BUG: gte/lte use > and < instead of >= and <= (off-by-one)
                 "gt" => val.as_f64().map_or(false, |v| v > rule.value.as_f64().unwrap_or(0.0)),
                 "lt" => val.as_f64().map_or(false, |v| v < rule.value.as_f64().unwrap_or(0.0)),
                 "eq" => val == &rule.value,
+                "gte" => val.as_f64().map_or(false, |v| v > rule.value.as_f64().unwrap_or(0.0)),  // BUG: should be >=
+                "lte" => val.as_f64().map_or(false, |v| v < rule.value.as_f64().unwrap_or(0.0)),  // BUG: should be <=
                 "not_empty" => !val.to_string().is_empty(),
                 _ => false,
             };
@@ -62,6 +65,27 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_gte_boundary_bug() {
+        // amount = 100, rule: gte 100 => should pass but fails due to bug
+        let rule = ValidationRule { id: "r1".into(), field: "amount".into(), operator: "gte".into(), value: serde_json::json!(100) };
+        let mut rec = HashMap::new();
+        rec.insert("amount".into(), serde_json::json!(100));
+        let result = evaluate_rule(&rule, &rec);
+        assert!(result.passed, "amount=100 should pass gte 100, but off-by-one bug causes it to fail");
+    }
+
+    #[test]
+    fn test_lte_boundary_bug() {
+        // amount = 100, rule: lte 100 => should pass but fails due to bug
+        let rule = ValidationRule { id: "r1".into(), field: "amount".into(), operator: "lte".into(), value: serde_json::json!(100) };
+        let mut rec = HashMap::new();
+        rec.insert("amount".into(), serde_json::json!(100));
+        let result = evaluate_rule(&rule, &rec);
+        assert!(result.passed, "amount=100 should pass lte 100, but off-by-one bug causes it to fail");
+    }
+
     #[test]
     fn test_rule_chain_not_supported() {
         let rules = vec![
