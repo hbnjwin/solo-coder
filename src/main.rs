@@ -21,6 +21,7 @@ impl ApprovalStore {
 }
 
 /// BUG: read-then-write not atomic, no version check
+/// BUG: even if retry is added, it would use stale version from first read
 pub fn approve_record(store: Arc<Mutex<ApprovalStore>>, record_id: &str, approver: &str) -> Result<()> {
     let mut s = store.lock().unwrap();
     let record = s.get(record_id).ok_or_else(|| anyhow::anyhow!("record not found"))?;
@@ -48,6 +49,7 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
     use std::thread;
+
     #[test]
     fn test_concurrent_overwrites() {
         let store = Arc::new(Mutex::new(ApprovalStore::new()));
@@ -59,5 +61,19 @@ mod tests {
         }
         let successes: Vec<_> = handles.into_iter().filter(|h| h.join().unwrap().is_ok()).count();
         assert!(successes <= 1, "only one should succeed, got {}", successes);
+    }
+
+    #[test]
+    fn test_version_check_on_update() {
+        let mut store = ApprovalStore::new();
+        store.insert(ApprovalRecord { id: "r1".into(), status: "pending".into(), approver: "".into(), version: 1 });
+        // Simulate: read with version 1, but someone else already updated to version 2
+        let mut record = store.get("r1").unwrap();
+        record.version = 1; // stale version
+        record.status = "approved".into();
+        // BUG: update should fail because version mismatch (stored=1, but conceptually should be 2)
+        // Currently succeeds because no version check
+        let result = store.update(record);
+        assert!(result.is_err(), "update with stale version should fail");
     }
 }
