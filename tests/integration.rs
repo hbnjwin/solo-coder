@@ -46,6 +46,16 @@ fn test_workflow_scenario_b() {
         "expected at least 4 transitions, got {}",
         events.len()
     );
+
+    // Resubmit from Rejected is a valid single-step transition
+    let mut resubmit = make_instance("wf-3", ApprovalState::Rejected, "2026-05-11T10:00:00Z");
+    let r = auto_advance(&machine, &mut resubmit, ApprovalState::Submitted);
+    assert!(
+        r.is_ok(),
+        "single-step resubmit from Rejected should succeed, got {:?}",
+        r
+    );
+    assert_eq!(resubmit.state, ApprovalState::Submitted);
 }
 
 #[test]
