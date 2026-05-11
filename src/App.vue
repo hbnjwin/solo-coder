@@ -4,7 +4,10 @@
     <form @submit.prevent="handleSubmit">
       <div class="field"><label>合同名称</label><input v-model="form.contractName" placeholder="请输入合同名称" /></div>
       <div class="field"><label>金额</label><input v-model.number="form.amount" type="number" placeholder="请输入金额" /></div>
-      <div class="field"><label>审批人</label><select v-model="form.approver"><option value="">请选择</option><option value="manager">部门经理</option><option value="gm">总经理</option></select></div>
+      <div class="field"><label>审批人</label>
+        <!-- BUG: no "总经理" option even when amount > 100万 -->
+        <select v-model="form.approver"><option value="">请选择</option><option value="manager">部门经理</option></select>
+      </div>
       <div class="field"><label>日期</label><input v-model="form.date" type="date" /></div>
       <!-- BUG: no validation at all -->
       <button type="submit">提交</button>
