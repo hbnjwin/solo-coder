@@ -1,7 +1,6 @@
 <template>
   <div class="container">
     <h2>审批客户端</h2>
-    <!-- TODO: OfflineStatusBar component -->
     <div class="status" :class="{ offline: !isOnline }">
       {{ isOnline ? '在线' : '离线' }}
     </div>
@@ -10,11 +9,10 @@
       <div class="field"><label>审批意见</label><input v-model="form.comment" /></div>
       <button type="submit">提交审批</button>
     </form>
-    <!-- TODO: PendingQueue component -->
     <div v-if="pendingQueue.length > 0" class="queue">
       <h3>待同步队列 ({{ pendingQueue.length }})</h3>
       <div v-for="(item, idx) in pendingQueue" :key="idx" class="queue-item">
-        {{ item.contractId }} - {{ item.comment }}
+        {{ item.contractId }} - {{ item.comment }} <span class="time">{{ item.timestamp }}</span>
       </div>
     </div>
   </div>
@@ -23,10 +21,12 @@
 import { reactive, ref } from 'vue'
 const isOnline = ref(navigator.onLine)
 const form = reactive({ contractId: '', comment: '' })
-const pendingQueue = reactive<{ contractId: string; comment: string }[]>([])
+const pendingQueue = reactive<{ contractId: string; comment: string; timestamp: number }[]>([])
 
+// BUG: fails completely when offline, no queue mechanism
+// BUG: no queue limit - can grow unbounded
+// BUG: sync order not guaranteed (would need timestamp-based sorting)
 function submitApproval() {
-  // BUG: fails completely when offline, no queue mechanism
   if (!isOnline.value) {
     alert('网络不可用，提交失败') // BUG: should queue instead
     return
@@ -43,4 +43,5 @@ function submitApproval() {
 .field input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
 .queue { margin-top: 20px; padding: 16px; border: 1px solid #faad14; border-radius: 4px; background: #fffbe6; }
 .queue-item { padding: 8px; border-bottom: 1px solid #ffe58f; }
+.time { color: #999; font-size: 12px; margin-left: 8px; }
 </style>
