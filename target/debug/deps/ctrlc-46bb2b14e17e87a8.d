@@ -1,0 +1,11 @@
+D:\work\github\solo-coder\projects\trae-solo\cfg-metrics-fusion\target\debug\deps\ctrlc-46bb2b14e17e87a8.d: C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\lib.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\error.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\windows\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\signal.rs
+
+D:\work\github\solo-coder\projects\trae-solo\cfg-metrics-fusion\target\debug\deps\libctrlc-46bb2b14e17e87a8.rlib: C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\lib.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\error.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\windows\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\signal.rs
+
+D:\work\github\solo-coder\projects\trae-solo\cfg-metrics-fusion\target\debug\deps\libctrlc-46bb2b14e17e87a8.rmeta: C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\lib.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\error.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\windows\mod.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\signal.rs
+
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\lib.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\error.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\mod.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\platform\windows\mod.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ctrlc-3.5.2\src\signal.rs:

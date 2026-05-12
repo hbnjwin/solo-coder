@@ -1,0 +1,11 @@
+D:\work\github\solo-coder\projects\trae-solo\cfg-metrics-fusion\target\debug\deps\writeable-06954a3ea089f129.d: C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\lib.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\cmp.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\concat.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\impls.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\ops.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\parts_write_adapter.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\try_writeable.rs
+
+D:\work\github\solo-coder\projects\trae-solo\cfg-metrics-fusion\target\debug\deps\libwriteable-06954a3ea089f129.rmeta: C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\lib.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\cmp.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\concat.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\impls.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\ops.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\parts_write_adapter.rs C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\try_writeable.rs
+
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\lib.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\cmp.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\concat.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\impls.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\ops.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\parts_write_adapter.rs:
+C:\Users\wt.home\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\writeable-0.6.3\src\try_writeable.rs:
