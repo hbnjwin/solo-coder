@@ -1,0 +1,1 @@
+{"root":["./src/env.d.ts","./src/main.ts","./src/app.vue","./src/components/designercanvas.vue","./src/components/nodepanel.vue","./src/components/propertypanel.vue"],"errors":true,"version":"5.9.3"}

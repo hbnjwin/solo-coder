@@ -1,38 +1,35 @@
 <template>
-  <div
-    class="designer-canvas"
-    @drop="onDrop"
-    @dragover.prevent
-    @wheel="onWheel"
-    @mousedown="onCanvasMouseDown"
-    @mousemove="onCanvasMouseMove"
-    @mouseup="onCanvasMouseUp"
-  >
-    <svg class="connections-layer" :viewBox="viewBox">
-      <line
-        v-for="conn in connections"
-        :key="conn.id"
-        :x1="conn.x1"
-        :y1="conn.y1"
-        :x2="conn.x2"
-        :y2="conn.y2"
-        stroke="#999"
-        stroke-width="2"
-      />
+  <div class="designer-canvas"
+       @drop="onDrop"
+       @dragover.prevent
+       @wheel="onWheel"
+       @mousedown="onCanvasMouseDown"
+       @mousemove="onCanvasMouseMove"
+       @mouseup="onCanvasMouseUp">
+    <svg class="connections-layer"
+         :viewBox="viewBox">
+      <line v-for="conn in connections"
+            :key="conn.id"
+            :x1="getNodeX(conn.fromNodeId) + 120"
+            :y1="getNodeY(conn.fromNodeId) + 30"
+            :x2="getNodeX(conn.toNodeId)"
+            :y2="getNodeY(conn.toNodeId) + 30"
+            stroke="#999"
+            stroke-width="2" />
     </svg>
-    <div
-      v-for="node in nodes"
-      :key="node.id"
-      class="canvas-node"
-      :class="{ selected: selectedNodeId === node.id }"
-      :style="{ left: node.x + 'px', top: node.y + 'px' }"
-      @mousedown.stop="onNodeMouseDown($event, node.id)"
-      @click.stop="selectNode(node.id)"
-    >
+    <div v-for="node in nodes"
+         :key="node.id"
+         class="canvas-node"
+         :class="{ selected: selectedNodeId === node.id }"
+         :style="{ left: node.x + 'px', top: node.y + 'px' }"
+         @mousedown.stop="onNodeMouseDown($event, node.id)"
+         @click.stop="selectNode(node.id)">
       <div class="node-header">{{ node.label }}</div>
       <div class="node-type">{{ node.type }}</div>
-      <div class="port port-out" @mousedown.stop="onPortMouseDown($event, node.id)" />
-      <div class="port port-in" @mouseup.stop="onPortMouseUp($event, node.id)" />
+      <div class="port port-out"
+           @mousedown.stop="onPortMouseDown($event, node.id)" />
+      <div class="port port-in"
+           @mouseup.stop="onPortMouseUp($event, node.id)" />
     </div>
   </div>
 </template>
@@ -48,28 +45,26 @@ interface CanvasNode {
   y: number
 }
 
-interface Connection {
-  id: string
-  fromNodeId: string
-  toNodeId: string
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-}
+const props = defineProps<{
+  nodes: CanvasNode[]
+  selectedNodeId: string | null
+}>()
 
-const nodes = ref<CanvasNode[]>([])
-const connections = ref<Connection[]>([])
-const selectedNodeId = ref<string | null>(null)
+const emit = defineEmits<{
+  addNode: [payload: { id: string; label: string; x: number; y: number }]
+  selectNode: [id: string | null]
+  moveNode: [payload: { id: string; x: number; y: number }]
+  addConnection: [payload: { fromNodeId: string; toNodeId: string }]
+}>()
+
+const connections = ref<{ id: string; fromNodeId: string; toNodeId: string }[]>(
+  []
+)
 const scale = ref(1)
 const offsetX = ref(0)
 const offsetY = ref(0)
 
-const viewBox = computed(() => {
-  return `${offsetX.value} ${offsetY.value} ${800 / scale.value} ${600 / scale.value}`
-})
-
-let nextId = 1
+let nextConnId = 1
 let draggingNodeId: string | null = null
 let dragStartX = 0
 let dragStartY = 0
@@ -77,14 +72,27 @@ let nodeStartX = 0
 let nodeStartY = 0
 let connectingFromNodeId: string | null = null
 
+const viewBox = computed(() => {
+  return `${offsetX.value} ${offsetY.value} ${800 / scale.value} ${
+    600 / scale.value
+  }`
+})
+
+function getNodeX(id: string): number {
+  return props.nodes.find((n) => n.id === id)?.x ?? 0
+}
+
+function getNodeY(id: string): number {
+  return props.nodes.find((n) => n.id === id)?.y ?? 0
+}
+
 function onDrop(event: DragEvent) {
   const data = event.dataTransfer?.getData('nodeType')
   if (!data) return
   const type = JSON.parse(data)
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  nodes.value.push({
-    id: `node-${nextId++}`,
-    type: type.id,
+  emit('addNode', {
+    id: type.id,
     label: type.label,
     x: event.clientX - rect.left,
     y: event.clientY - rect.top,
@@ -92,31 +100,31 @@ function onDrop(event: DragEvent) {
 }
 
 function selectNode(id: string) {
-  selectedNodeId.value = id
+  emit('selectNode', id)
 }
 
 function onNodeMouseDown(event: MouseEvent, id: string) {
   draggingNodeId = id
   dragStartX = event.clientX
   dragStartY = event.clientY
-  const node = nodes.value.find(n => n.id === id)
+  const node = props.nodes.find((n) => n.id === id)
   if (node) {
     nodeStartX = node.x
     nodeStartY = node.y
   }
 }
 
-function onCanvasMouseDown(event: MouseEvent) {
-  selectedNodeId.value = null
+function onCanvasMouseDown() {
+  emit('selectNode', null)
 }
 
 function onCanvasMouseMove(event: MouseEvent) {
   if (draggingNodeId) {
-    const node = nodes.value.find(n => n.id === draggingNodeId)
-    if (node) {
-      node.x = nodeStartX + (event.clientX - dragStartX)
-      node.y = nodeStartY + (event.clientY - dragStartY)
-    }
+    emit('moveNode', {
+      id: draggingNodeId,
+      x: nodeStartX + (event.clientX - dragStartX),
+      y: nodeStartY + (event.clientY - dragStartY),
+    })
   }
 }
 
@@ -136,19 +144,15 @@ function onPortMouseDown(_event: MouseEvent, nodeId: string) {
 
 function onPortMouseUp(_event: MouseEvent, nodeId: string) {
   if (connectingFromNodeId && connectingFromNodeId !== nodeId) {
-    const fromNode = nodes.value.find(n => n.id === connectingFromNodeId)
-    const toNode = nodes.value.find(n => n.id === nodeId)
-    if (fromNode && toNode) {
-      connections.value.push({
-        id: `conn-${nextId++}`,
-        fromNodeId: connectingFromNodeId,
-        toNodeId: nodeId,
-        x1: fromNode.x + 120,
-        y1: fromNode.y + 30,
-        x2: toNode.x,
-        y2: toNode.y + 30,
-      })
-    }
+    connections.value.push({
+      id: `conn-${nextConnId++}`,
+      fromNodeId: connectingFromNodeId,
+      toNodeId: nodeId,
+    })
+    emit('addConnection', {
+      fromNodeId: connectingFromNodeId,
+      toNodeId: nodeId,
+    })
   }
   connectingFromNodeId = null
 }
@@ -159,8 +163,7 @@ function onPortMouseUp(_event: MouseEvent, nodeId: string) {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(90deg, #f0f0f0 1px, transparent 1px),
+  background: linear-gradient(90deg, #f0f0f0 1px, transparent 1px),
     linear-gradient(#f0f0f0 1px, transparent 1px);
   background-size: 20px 20px;
 }

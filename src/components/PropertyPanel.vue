@@ -1,37 +1,47 @@
 <template>
   <div class="property-panel">
     <h3>属性面板</h3>
-    <div v-if="selectedNode" class="property-form">
+    <div v-if="selectedNode"
+         class="property-form">
       <div class="form-item">
         <label>节点名称</label>
-        <input v-model="selectedNode.label" />
+        <input :value="selectedNode.label"
+               @input="onLabelChange($event)" />
       </div>
       <div class="form-item">
         <label>节点类型</label>
         <span>{{ selectedNode.type }}</span>
       </div>
-      <div v-if="selectedNode.type === 'approval'" class="form-item">
+      <div v-if="selectedNode.type === 'approval'"
+           class="form-item">
         <label>审批人</label>
         <input placeholder="输入审批人" />
       </div>
-      <div v-if="selectedNode.type === 'approval'" class="form-item">
+      <div v-if="selectedNode.type === 'approval'"
+           class="form-item">
         <label>超时时间(小时)</label>
-        <input type="number" placeholder="24" />
+        <input type="number"
+               placeholder="24" />
       </div>
-      <div v-if="selectedNode.type === 'condition'" class="form-item">
+      <div v-if="selectedNode.type === 'condition'"
+           class="form-item">
         <label>条件表达式</label>
         <input placeholder="amount > 10000" />
       </div>
-      <div v-if="selectedNode.type === 'countersign'" class="form-item">
+      <div v-if="selectedNode.type === 'countersign'"
+           class="form-item">
         <label>通过比例(%)</label>
-        <input type="number" placeholder="60" />
+        <input type="number"
+               placeholder="60" />
       </div>
-      <div v-if="selectedNode.type === 'cc'" class="form-item">
+      <div v-if="selectedNode.type === 'cc'"
+           class="form-item">
         <label>抄送人</label>
         <input placeholder="输入抄送人" />
       </div>
     </div>
-    <div v-else class="empty-hint">
+    <div v-else
+         class="empty-hint">
       请选中画布上的节点
     </div>
   </div>
@@ -40,15 +50,33 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+interface CanvasNode {
+  id: string
+  type: string
+  label: string
+  x: number
+  y: number
+}
+
 const props = defineProps<{
-  nodes: Array<{ id: string; type: string; label: string; x: number; y: number }>
+  nodes: CanvasNode[]
   selectedNodeId: string | null
+}>()
+
+const emit = defineEmits<{
+  updateNode: [payload: { id: string; label: string }]
 }>()
 
 const selectedNode = computed(() => {
   if (!props.selectedNodeId) return null
-  return props.nodes.find(n => n.id === props.selectedNodeId) || null
+  return props.nodes.find((n) => n.id === props.selectedNodeId) || null
 })
+
+function onLabelChange(event: Event) {
+  if (!props.selectedNodeId) return
+  const value = (event.target as HTMLInputElement).value
+  emit('updateNode', { id: props.selectedNodeId, label: value })
+}
 </script>
 
 <style scoped>
