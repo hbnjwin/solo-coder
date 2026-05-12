@@ -1,0 +1,13 @@
+[package]
+name = "escalation-notify"
+version = "0.3.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+axum = "0.7"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
