@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒吧组局平台 - Neon Pulse</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Be+Vietnam+Pro:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --surface: #131313;
+            --surface-dim: #131313;
+            --surface-bright: #393939;
+            --surface-container-lowest: #0e0e0e;
+            --surface-container-low: #1b1b1b;
+            --surface-container: #1f1f1f;
+            --surface-container-high: #2a2a2a;
+            --surface-container-highest: #353534;
+            --on-surface: #e5e2e1;
+            --on-surface-variant: #e6bcbd;
+            --inverse-surface: #e5e2e1;
+            --inverse-on-surface: #313030;
+            --outline: #9f8c8c;
+            --outline-variant: rgba(230, 188, 189, 0.15);
+            --surface-tint: #ffb3b5;
+            --primary: #ffdada;
+            --on-primary: #512124;
+            --primary-container: #ff5167;
+            --on-primary-container: #7b4245;
+            --inverse-primary: #894e50;
+            --secondary: #e8b3ff;
+            --on-secondary: #471c5e;
+            --secondary-container: #7508a5;
+            --on-secondary-container: #d6a2ed;
+            --tertiary: #66f7ff;
+            --on-tertiary: #003739;
+            --tertiary-container: #00dce5;
+            --on-tertiary-container: #005c60;
+            --error: #ffb4ab;
+            --on-error: #690005;
+            --error-container: #93000a;
+            --on-error-container: #ffdad6;
+            --primary-fixed: #ffdada;
+            --primary-fixed-dim: #ffb3b5;
+            --on-primary-fixed: #370c11;
+            --on-primary-fixed-variant: #6d373a;
+            --secondary-fixed: #f6d9ff;
+            --secondary-fixed-dim: #e8b3ff;
+            --on-secondary-fixed: #300247;
+            --on-secondary-fixed-variant: #603476;
+            --tertiary-fixed: #63f7ff;
+            --tertiary-fixed-dim: #00dce5;
+            --on-tertiary-fixed: #002021;
+            --on-tertiary-fixed-variant: #004f53;
+            --background: #000000;
+            --on-background: #e5e2e1;
+            --surface-variant: #353534;
+            --rounded-sm: 0.25rem;
+            --rounded: 0.5rem;
+            --rounded-md: 0.75rem;
+            --rounded-lg: 1rem;
+            --rounded-xl: 1.5rem;
+            --rounded-full: 9999px;
+            --section-gap: 1.5rem;
+            --container-padding: 1.25rem;
+            --gutter: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: var(--background);
+            color: var(--on-surface);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: var(--container-padding);
+            background-color: var(--surface);
+            min-height: 100vh;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+        }
+
+        .headline-lg {
+            font-size: 32px;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .title-lg {
+            font-size: 20px;
+            line-height: 28px;
+            font-weight: 600;
+        }
+
+        .body-md {
+            font-size: 16px;
+            line-height: 24px;
+            font-weight: 400;
+        }
+
+        .label-md {
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 600;
+        }
+
+        .glass-card {
+            background: rgba(31, 31, 31, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: var(--rounded-xl);
+            padding: var(--container-padding);
+            margin-bottom: var(--section-gap);
+            box-shadow: 0 8px 32px rgba(255, 179, 181, 0.08);
+            border: 1px solid var(--outline-variant);
+        }
+
+        .gradient-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-container));
+            color: var(--on-primary);
+            border: none;
+            border-radius: var(--rounded-xl);
+            padding: 12px 24px;
+            font-family: 'Be Vietnam Pro', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(255, 81, 103, 0.3);
+        }
+
+        .gradient-btn:hover {
+            transform: scale(0.98);
+            box-shadow: 0 6px 16px rgba(255, 81, 103, 0.4);
+        }
+
+        .gradient-btn:active {
+            transform: scale(0.96);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--section-gap);
+            padding-top: 1rem;
+        }
+
+        .location {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .search-bar {
+            background: var(--surface-container-low);
+            border-radius: var(--rounded-full);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: var(--section-gap);
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: var(--on-surface);
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: var(--section-gap);
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .category-tab {
+            background: var(--surface-container-highest);
+            padding: 8px 16px;
+            border-radius: var(--rounded-full);
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-tab.active {
+            background: rgba(255, 81, 103, 0.2);
+            color: var(--primary);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .section-more {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+        }
+
+        .club-card {
+            position: relative;
+            border-radius: var(--rounded-xl);
+            overflow: hidden;
+            margin-bottom: var(--section-gap);
+            height: 240px;
+        }
+
+        .club-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .club-card-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(14, 14, 14, 0.9));
+            padding: 1.5rem;
+        }
+
+        .club-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .club-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .club-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 14px;
+        }
+
+        .club-price {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 14px;
+        }
+
+        .club-activity {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 14px;
+        }
+
+        .activity-tag {
+            background: var(--secondary-container);
+            color: var(--secondary);
+            padding: 2px 8px;
+            border-radius: var(--rounded-sm);
+            font-size: 12px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface-container-low);
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem 0;
+            border-top: 1px solid var(--outline-variant);
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 12px;
+            color: var(--on-surface-variant);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .date-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: var(--section-gap);
+        }
+
+        .date-tab {
+            flex: 1;
+            background: var(--surface-container);
+            padding: 10px;
+            border-radius: var(--rounded-lg);
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .date-tab.active {
+            background: var(--primary-container);
+            color: var(--on-primary);
+        }
+
+        .price-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: var(--section-gap);
+        }
+
+        .price-card {
+            background: var(--surface-container-low);
+            padding: 1.5rem;
+            border-radius: var(--rounded-xl);
+        }
+
+        .price-label {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+            margin-bottom: 0.5rem;
+        }
+
+        .price-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-bar {
+            height: 4px;
+            background: var(--surface-variant);
+            border-radius: var(--rounded-full);
+            overflow: hidden;
+        }
+
+        .price-bar-fill {
+            height: 100%;
+            background: var(--primary);
+        }
+
+        .table-card {
+            background: var(--surface-container);
+            border-radius: var(--rounded-xl);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .table-host {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .host-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--rounded-full);
+            object-fit: cover;
+        }
+
+        .host-info {
+            flex: 1;
+        }
+
+        .host-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .host-tags {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 12px;
+        }
+
+        .host-tag {
+            background: var(--surface-container-highest);
+            padding: 2px 8px;
+            border-radius: var(--rounded-sm);
+        }
+
+        .table-status {
+            font-size: 14px;
+            color: var(--tertiary);
+        }
+
+        .table-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .price-details {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .price-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .price-item-label {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+        }
+
+        .price-item-value {
+            font-weight: 600;
+        }
+
+        .table-desc {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+            margin-bottom: 1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--rounded-full);
+            background: rgba(31, 31, 31, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .activity-header {
+            position: relative;
+            height: 200px;
+            margin-bottom: var(--section-gap);
+        }
+
+        .activity-header img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .activity-header-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            padding: 1.5rem;
+        }
+
+        .activity-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 14px;
+            color: var(--on-surface-variant);
+        }
+
+        .ticket-prices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: var(--section-gap);
+        }
+
+        .ticket-card {
+            background: var(--surface-container-low);
+            padding: 1.5rem;
+            border-radius: var(--rounded-xl);
+            text-align: center;
+        }
+
+        .ticket-label {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-price {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-desc {
+            font-size: 12px;
+            color: var(--tertiary);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: var(--section-gap);
+        }
+
+        .info-card {
+            background: var(--surface-container);
+            padding: 1rem;
+            border-radius: var(--rounded-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .info-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--rounded-full);
+            background: var(--surface-container-highest);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .feature-list {
+            margin-bottom: var(--section-gap);
+        }
+
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--surface-container);
+            border-radius: var(--rounded-lg);
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-name {
+            font-size: 14px;
+        }
+
+        .feature-status {
+            width: 20px;
+            height: 20px;
+            border-radius: var(--rounded-full);
+            background: var(--tertiary-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--on-tertiary-container);
+        }
+
+        .feature-status.off {
+            background: var(--surface-variant);
+            color: var(--on-surface-variant);
+        }
+
+        .platform-guarantee {
+            background: var(--surface-container-low);
+            padding: 1rem;
+            border-radius: var(--rounded-lg);
+            margin-bottom: var(--section-gap);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .guarantee-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: var(--rounded-full);
+            background: var(--primary-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+
+        .guarantee-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .final-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--surface-container);
+            border-radius: var(--rounded-lg);
+            margin-bottom: 2rem;
+        }
+
+        .price-label {
+            font-size: 14px;
+        }
+
+        .price-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }</html>
