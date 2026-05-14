@@ -1,0 +1,17 @@
+﻿# Backend
+target/
+*.class
+*.jar
+*.war
+*.log
+.idea/
+*.iml
+
+# Frontend
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# OS
+Thumbs.db
