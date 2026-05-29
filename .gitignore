@@ -1,0 +1,17 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+
+# Node
+node_modules/
+dist/
+.env.local
+.env.*.local
+*.log
