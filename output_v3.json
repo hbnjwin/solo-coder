@@ -1,0 +1,53 @@
+{
+  "form_name": "seed_cleaning_card",
+  "results": [
+    {
+      "file": "微信图片_20260519194813_10_879.jpg",
+      "extracted": {
+        "registration_date": "ZLIS",
+        "cleaner_registration": "垄 !y",
+        "bag_type": "mesh_bag",
+        "purity": [
+          "seeds"
+        ],
+        "material_type": "cleaned_seeds_or_fruit",
+        "seed_condition": [
+          "fully_mature"
+        ],
+        "needs_cleaning": "yes",
+        "cleaning_method": null,
+        "result_type": "seeds",
+        "residue_amount": null,
+        "cleaner_completion": "弘三",
+        "sampler": "张三",
+        "completion_date": "30265.18",
+        "xray_sample_quantity": null,
+        "transfer_to_history": null,
+        "abnormal_conditions": []
+      }
+    },
+    {
+      "file": "微信图片_20260519194831_11_879.jpg",
+      "extracted": {
+        "registration_date": "25",
+        "cleaner_registration": "1",
+        "bag_type": "mesh_bag",
+        "purity": [],
+        "material_type": "cleaned_seeds_or_fruit",
+        "seed_condition": [
+          "fully_mature"
+        ],
+        "needs_cleaning": "yes",
+        "cleaning_method": "dry_fruit_method",
+        "result_type": "seeds",
+        "residue_amount": "very_little",
+        "cleaner_completion": "张三",
+        "sampler": "张三",
+        "completion_date": "20205,18",
+        "xray_sample_quantity": "5",
+        "transfer_to_history": null,
+        "abnormal_conditions": []
+      }
+    }
+  ]
+}
