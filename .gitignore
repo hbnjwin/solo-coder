@@ -3,15 +3,23 @@ target/
 *.class
 *.jar
 *.war
+*.ear
+*.log
 .idea/
 *.iml
 .settings/
-.project
 .classpath
+.project
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
 
 # Node
 node_modules/
 dist/
+.env
 .env.local
-.env.*.local
-*.log
+*.local
+.DS_Store
